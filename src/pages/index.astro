@@ -11,7 +11,288 @@
 		<title>Mona Mayhem</title>
 	</head>
 	<body>
-		<h1>Mona Mayhem</h1>
-		<p>Welcome to Mona Mayhem! Time to build a GitHub Contribution Battle Arena.</p>
+		<header>
+			<h1>Mona Mayhem</h1>
+			<p class="tagline">GitHub Contribution Battle Arena</p>
+		</header>
+
+		<main>
+			<section class="battle-form">
+				<div class="player">
+					<label for="player1">Player 1</label>
+					<input id="player1" type="text" placeholder="GitHub username" autocomplete="off" spellcheck="false" />
+					<span class="player-error" id="error1"></span>
+				</div>
+
+				<button id="battle-btn" type="button">⚔ BATTLE!</button>
+
+				<div class="player">
+					<label for="player2">Player 2</label>
+					<input id="player2" type="text" placeholder="GitHub username" autocomplete="off" spellcheck="false" />
+					<span class="player-error" id="error2"></span>
+				</div>
+			</section>
+
+			<section id="results" hidden>
+				<div class="scores">
+					<div class="player-score" id="score1">
+						<span class="score-username"></span>
+						<span class="score-total"></span>
+					</div>
+					<div class="player-score" id="score2">
+						<span class="score-username"></span>
+						<span class="score-total"></span>
+					</div>
+				</div>
+				<div class="winner-banner" id="winner-banner"></div>
+			</section>
+		</main>
+
+		<style>
+			*, *::before, *::after { box-sizing: border-box; }
+
+			body {
+				margin: 0;
+				min-height: 100vh;
+				background: #0d1117;
+				color: #e6edf3;
+				font-family: "Courier New", Courier, monospace;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 2rem 1rem;
+			}
+
+			header {
+				text-align: center;
+				margin-bottom: 2.5rem;
+			}
+
+			h1 {
+				font-size: 2.5rem;
+				margin: 0 0 0.25rem;
+				letter-spacing: 0.05em;
+				color: #58a6ff;
+			}
+
+			.tagline {
+				margin: 0;
+				color: #8b949e;
+				font-size: 0.95rem;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+			}
+
+			.battle-form {
+				display: flex;
+				align-items: flex-start;
+				gap: 1.5rem;
+				flex-wrap: wrap;
+				justify-content: center;
+			}
+
+			.player {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+				min-width: 200px;
+			}
+
+			label {
+				font-size: 0.85rem;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: #8b949e;
+			}
+
+			input[type="text"] {
+				background: #161b22;
+				border: 1px solid #30363d;
+				color: #e6edf3;
+				font-family: inherit;
+				font-size: 1rem;
+				padding: 0.5rem 0.75rem;
+				border-radius: 4px;
+				width: 100%;
+				outline: none;
+			}
+
+			input[type="text"]:focus {
+				border-color: #58a6ff;
+			}
+
+			.player-error {
+				font-size: 0.8rem;
+				color: #f85149;
+				min-height: 1em;
+			}
+
+			#battle-btn {
+				align-self: center;
+				background: #238636;
+				color: #fff;
+				border: none;
+				font-family: inherit;
+				font-size: 1rem;
+				font-weight: bold;
+				letter-spacing: 0.08em;
+				padding: 0.6rem 1.4rem;
+				border-radius: 4px;
+				cursor: pointer;
+				text-transform: uppercase;
+				margin-top: 1.4rem;
+			}
+
+			#battle-btn:hover:not(:disabled) {
+				background: #2ea043;
+			}
+
+			#battle-btn:disabled {
+				opacity: 0.55;
+				cursor: not-allowed;
+			}
+
+			#results {
+				margin-top: 2.5rem;
+				width: 100%;
+				max-width: 540px;
+				text-align: center;
+			}
+
+			.scores {
+				display: flex;
+				gap: 1.5rem;
+				justify-content: center;
+				margin-bottom: 1.5rem;
+				flex-wrap: wrap;
+			}
+
+			.player-score {
+				background: #161b22;
+				border: 1px solid #30363d;
+				border-radius: 6px;
+				padding: 1rem 1.5rem;
+				min-width: 180px;
+				display: flex;
+				flex-direction: column;
+				gap: 0.4rem;
+			}
+
+			.player-score.winner {
+				border-color: #ffa657;
+			}
+
+			.score-username {
+				font-size: 0.9rem;
+				color: #8b949e;
+			}
+
+			.score-total {
+				font-size: 1.8rem;
+				font-weight: bold;
+				color: #58a6ff;
+			}
+
+			.winner-banner {
+				font-size: 1.2rem;
+				font-weight: bold;
+				letter-spacing: 0.05em;
+				color: #ffa657;
+			}
+		</style>
+
+		<script>
+			const btn = document.getElementById('battle-btn') as HTMLButtonElement;
+			const input1 = document.getElementById('player1') as HTMLInputElement;
+			const input2 = document.getElementById('player2') as HTMLInputElement;
+			const error1 = document.getElementById('error1') as HTMLSpanElement;
+			const error2 = document.getElementById('error2') as HTMLSpanElement;
+			const results = document.getElementById('results') as HTMLElement;
+			const score1 = document.getElementById('score1') as HTMLElement;
+			const score2 = document.getElementById('score2') as HTMLElement;
+			const winnerBanner = document.getElementById('winner-banner') as HTMLElement;
+
+			function extractTotal(data: unknown): number {
+				if (!data || typeof data !== 'object') return 0;
+				const d = data as Record<string, unknown>;
+				// Shape: { total_contributions: number }  (github.com .contribs v2)
+				if (typeof d.total_contributions === 'number') return d.total_contributions;
+				// Shape: { total: number }
+				if (typeof d.total === 'number') return d.total;
+				// Shape: { total: { [year]: number } }
+				if (d.total && typeof d.total === 'object') {
+					return Object.values(d.total as Record<string, number>).reduce((sum, v) => sum + (v || 0), 0);
+				}
+				// Shape: weeks array with contribution_days (github.com .contribs v2 fallback)
+				if (Array.isArray(d.weeks)) {
+					return (d.weeks as { contribution_days: { count: number }[] }[])
+						.flatMap(w => w.contribution_days)
+						.reduce((sum, c) => sum + (c.count ?? 0), 0);
+				}
+				return 0;
+			}
+
+			btn.addEventListener('click', async () => {
+				const u1 = input1.value.trim();
+				const u2 = input2.value.trim();
+				error1.textContent = '';
+				error2.textContent = '';
+
+				let valid = true;
+				if (!u1) { error1.textContent = 'Enter a username'; valid = false; }
+				if (!u2) { error2.textContent = 'Enter a username'; valid = false; }
+				if (!valid) return;
+
+				btn.disabled = true;
+				btn.textContent = 'Fighting...';
+				results.hidden = true;
+
+				const fetchPlayer = async (username: string): Promise<{ total: number; error?: string }> => {
+					try {
+						const res = await fetch(`/api/contributions/${encodeURIComponent(username)}`);
+						if (!res.ok) {
+							const body = await res.json().catch(() => ({})) as { error?: string };
+							return { total: 0, error: body.error ?? `Error ${res.status}` };
+						}
+						const data: unknown = await res.json();
+						return { total: extractTotal(data) };
+					} catch {
+						return { total: 0, error: 'Network error' };
+					}
+				};
+
+				const [r1, r2] = await Promise.all([fetchPlayer(u1), fetchPlayer(u2)]);
+
+				if (r1.error) error1.textContent = r1.error;
+				if (r2.error) error2.textContent = r2.error;
+
+				// Render scores
+				(score1.querySelector('.score-username') as HTMLElement).textContent = u1;
+				(score1.querySelector('.score-total') as HTMLElement).textContent = r1.error ? '—' : String(r1.total);
+				(score2.querySelector('.score-username') as HTMLElement).textContent = u2;
+				(score2.querySelector('.score-total') as HTMLElement).textContent = r2.error ? '—' : String(r2.total);
+
+				score1.classList.remove('winner');
+				score2.classList.remove('winner');
+
+				if (!r1.error && !r2.error) {
+					if (r1.total > r2.total) {
+						score1.classList.add('winner');
+						winnerBanner.textContent = `🏆 ${u1} wins!`;
+					} else if (r2.total > r1.total) {
+						score2.classList.add('winner');
+						winnerBanner.textContent = `🏆 ${u2} wins!`;
+					} else {
+						winnerBanner.textContent = "It's a tie!";
+					}
+				} else {
+					winnerBanner.textContent = '';
+				}
+
+				results.hidden = false;
+				btn.disabled = false;
+				btn.textContent = '⚔ BATTLE!';
+			});
+		</script>
 	</body>
 </html>
